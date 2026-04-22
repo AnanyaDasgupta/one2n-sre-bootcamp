@@ -1,14 +1,17 @@
-# Declare commands (not files)
-.PHONY: install run test migrate makemigration
+.PHONY: run dev test lint
 
-# Install dependencies using uv
-install:
-	uv sync
-
-# Run the FastAPI application
+# Run the app (production-like)
 run:
-	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-# Run tests (fix import issue + ensure uv env is used)
+# Run in dev mode (auto-reload)
+dev:
+	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests
 test:
-	PYTHONPATH=. uv run pytest
+	uv run pytest -v
+
+# Optional: lint
+lint:
+	uv run ruff check .
