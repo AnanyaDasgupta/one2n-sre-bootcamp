@@ -27,28 +27,71 @@ It is designed following **12-Factor App principles** and focuses on production-
 * SQLAlchemy
 * Alembic
 * PostgreSQL
+* uv (Package Manager)
 
 ---
 
 ## 📂 Project Structure
 
 ```
-app/
-  main.py
-  routes.py
-  models.py
-  db.py
-  config.py
-tests/
-migrations/
-Makefile
-requirements.txt
-README.md
-```
-
+student-api/
+├── app/
+│   ├── config.py
+│   ├── main.py
+│   └── ...
+├── tests/
+│   └── test_health.py
+├── .env
+├── .env.example
+├── .python-version
+├── .venv/
+├── pyproject.toml
+├── uv.lock
+└── Makefile
 ---
 
-## 📡 API Specification
+## 🛠️ Installation & Setup
+
+### Prerequisites
+
+* Python 3.14+
+* uv package manager
+
+### Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd one2n-sre-bootcamp
+   ```
+
+2. **Navigate to the API directory**
+   ```bash
+   cd student-api
+   ```
+
+3. **Install dependencies**
+   ```bash
+   uv sync
+   ```
+
+4. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. **Run the application**
+   ```bash
+   make run
+   ```
+
+6. **Run tests**
+   ```bash
+   make test
+   ```
+
+---
 
 ### Base URL
 
@@ -225,5 +268,7 @@ A Postman collection is included in the repository for testing all endpoints.
 * Includes request and error logging
 
 ---
+
+
 
 
