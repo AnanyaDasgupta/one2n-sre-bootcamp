@@ -1,4 +1,9 @@
-.PHONY: run dev test lint
+# Declare commands (not files)
+.PHONY: install run dev test lint migrate makemigration
+
+# Install dependencies using uv
+install:
+	uv sync
 
 # Run the app (production-like)
 run:
@@ -10,7 +15,7 @@ dev:
 
 # Run tests
 test:
-	uv run pytest -v
+	PYTHONPATH=. uv run pytest
 
 # Optional: lint
 lint:
