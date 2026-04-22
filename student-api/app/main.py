@@ -12,4 +12,5 @@ def root():
 def healthcheck():
     return {"status": "ok"}
 
+# Include the student router to handle all student-related endpoints under the /api/v1/students prefix
 app.include_router(student_router)

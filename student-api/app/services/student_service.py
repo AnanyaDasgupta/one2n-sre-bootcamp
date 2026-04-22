@@ -2,10 +2,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Simple in-memory storage for students, with an auto-incrementing ID counter
 students = {}
-counter = 1
+counter = 1 
 
-
+# Add a new student and return the created student with an assigned ID
 def create_student(data):
     global counter
 
@@ -22,7 +23,7 @@ def create_student(data):
 
     return student
 
-
+# Return a list of all students
 def get_all_students():
     logger.info("Fetching all students")
     return list(students.values())
@@ -37,7 +38,7 @@ def get_student_by_id(student_id):
 
     return student
 
-
+# Update an existing student and return the updated student, or None if not found
 def update_student(student_id, data):
     student = students.get(student_id)
 
@@ -52,7 +53,7 @@ def update_student(student_id, data):
 
     return student
 
-
+# Delete a student by ID and return True if deleted, or False if not found
 def delete_student(student_id):
     if student_id not in students:
         logger.warning(f"Student {student_id} not found for deletion")
