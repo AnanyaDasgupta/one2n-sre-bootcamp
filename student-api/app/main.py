@@ -5,7 +5,6 @@ from app.api.v1.student_routes import router as student_router
 import app.core.logger
 
 from app.core.database import engine, Base
-from app.models import student  # register models
 
 
 # Run setup code once when the application starts.
