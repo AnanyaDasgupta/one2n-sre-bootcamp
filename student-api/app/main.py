@@ -8,13 +8,13 @@ from app.core.database import engine, Base
 from app.models import student  # register models
 
 
-# 👇 Lifespan handler
+# Run setup code once when the application starts.
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
+    # Create database tables before the app begins handling requests.
     Base.metadata.create_all(bind=engine)
     yield
-    # Shutdown logic (optional)
+    # Cleanup code can be added here later if needed.
 
 
 app = FastAPI(lifespan=lifespan)
@@ -22,12 +22,15 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def root():
+    # Simple route to confirm that the API is reachable.
     return {"message": "Welcome to the Student API!"}
 
 
 @app.get("/healthcheck")
 def healthcheck():
+    # Lightweight endpoint used to verify service health.
     return {"status": "ok"}
 
 
+# Register all student endpoints with the application.
 app.include_router(student_router)

@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Read the database connection string from the environment or .env file.
     DATABASE_URL: str
 
     model_config = SettingsConfigDict(
@@ -9,4 +10,5 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+# Shared settings instance imported across the application.
 settings = Settings()

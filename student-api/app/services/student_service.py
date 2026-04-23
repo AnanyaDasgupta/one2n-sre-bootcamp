@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_student(db: Session, data):
+    # Convert the validated request data into a SQLAlchemy model instance.
     logger.info(f"Creating student: {data.name}")
 
     student = Student(
@@ -13,6 +14,7 @@ def create_student(db: Session, data):
         age=data.age
     )
 
+    # Persist the row, then refresh it so generated values like id are available.
     db.add(student)
     db.commit()
     db.refresh(student)
@@ -21,11 +23,13 @@ def create_student(db: Session, data):
 
 
 def get_all_students(db: Session):
+    # Return all student rows as ORM objects.
     logger.info("Fetching all students")
     return db.query(Student).all()
 
 
 def get_student_by_id(db: Session, student_id: int):
+    # Look up a single row by primary key.
     student = db.query(Student).filter(Student.id == student_id).first()
 
     if student is None:
@@ -35,15 +39,18 @@ def get_student_by_id(db: Session, student_id: int):
 
 
 def update_student(db: Session, student_id: int, data):
+    # Load the existing row before applying updates.
     student = db.query(Student).filter(Student.id == student_id).first()
 
     if student is None:
         logger.warning(f"Student {student_id} not found for update")
         return None
 
+    # Replace the stored values with the new payload values.
     student.name = data.name
     student.age = data.age
 
+    # Commit the changes and reload the row from the database.
     db.commit()
     db.refresh(student)
 
@@ -53,12 +60,14 @@ def update_student(db: Session, student_id: int, data):
 
 
 def delete_student(db: Session, student_id: int):
+    # Fetch the row first so we know whether there is anything to delete.
     student = db.query(Student).filter(Student.id == student_id).first()
 
     if student is None:
         logger.warning(f"Student {student_id} not found for deletion")
         return False
 
+    # Delete the row permanently and commit the transaction.
     db.delete(student)
     db.commit()
 
