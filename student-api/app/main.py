@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from app.api.v1.student_routes import router as student_router
-import app.core.logger
-
 from app.core.database import engine, Base
+from app.core.logger import configure_logging
+
+
+configure_logging()
 
 
 # Run setup code once when the application starts.
