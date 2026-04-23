@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1.students import router as student_router
+from app.api.v1.student_routes import router as student_router
 import app.core.logger
 
 app = FastAPI()
