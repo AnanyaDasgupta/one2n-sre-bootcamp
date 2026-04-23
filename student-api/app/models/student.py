@@ -1,12 +1,10 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String
+from app.core.database import Base
 
-# Request model for creating a new student
-class StudentCreate(BaseModel):
-    name: str
-    age: int
 
-# Response model for returning student data, including the assigned ID
-class StudentResponse(BaseModel):
-    id: int
-    name: str
-    age: int
+class Student(Base):
+    __tablename__ = "students"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    age = Column(Integer, nullable=False)
