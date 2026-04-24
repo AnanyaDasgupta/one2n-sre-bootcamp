@@ -10,6 +10,9 @@ dependencies = [
     "pydantic-settings>=2.14.0",
     "python-dotenv>=1.2.2",
     "uvicorn>=0.45.0",
+    "pydantic-settings>=2.0.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.12",
 ]
 
 [dependency-groups]
