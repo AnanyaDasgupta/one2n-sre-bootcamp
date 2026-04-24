@@ -11,5 +11,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+
 # Shared settings instance imported across the application.
 settings = Settings()

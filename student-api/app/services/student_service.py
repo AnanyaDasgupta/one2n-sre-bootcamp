@@ -11,10 +11,7 @@ def create_student(db: Session, data):
     # Convert the validated request data into a SQLAlchemy model instance.
     logger.info(f"Creating student: {data.name}")
 
-    student = Student(
-        name=data.name,
-        age=data.age
-    )
+    student = Student(name=data.name, age=data.age)
 
     # Persist the row, then refresh it so generated values like id are available.
     db.add(student)
@@ -50,7 +47,9 @@ def update_student(db: Session, student_id: int, data):
     student = db.query(Student).filter(Student.id == student_id).first()
 
     if student is None:
-        raise HTTPException(status_code=404, detail=f"Student {student_id} not found for update")
+        raise HTTPException(
+            status_code=404, detail=f"Student {student_id} not found for update"
+        )
 
     # Replace the stored values with the new payload values.
     student.name = data.name

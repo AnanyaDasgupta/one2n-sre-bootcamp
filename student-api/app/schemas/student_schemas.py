@@ -14,6 +14,4 @@ class StudentResponse(BaseModel):
     age: int
 
     # Allow FastAPI to serialize SQLAlchemy model instances into this schema.
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

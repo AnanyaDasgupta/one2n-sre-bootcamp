@@ -10,11 +10,7 @@ engine = create_engine(
 )
 
 # SessionLocal creates a new database session for each request.
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base is inherited by all ORM models so SQLAlchemy can track them.
 Base = declarative_base()

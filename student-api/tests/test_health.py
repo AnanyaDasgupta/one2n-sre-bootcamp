@@ -10,6 +10,7 @@ from app.main import app
 
 client = TestClient(app)
 
+
 def test_healthcheck():
     """
     This test verifies that the health check endpoint returns a 200 status code
@@ -18,8 +19,3 @@ def test_healthcheck():
     response = client.get("/healthcheck")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
-
-
-
-    
