@@ -1,5 +1,7 @@
 import logging
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
+
 from app.models.student import Student
 
 logger = logging.getLogger(__name__)
@@ -28,13 +30,18 @@ def get_all_students(db: Session):
     return db.query(Student).all()
 
 
+def get_student_or_404(db: Session, student_id: int):
+    student = get_student_by_id(db, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail=f"Student {student_id} not found")
+    return student
+
+
 def get_student_by_id(db: Session, student_id: int):
     # Look up a single row by primary key.
     student = db.query(Student).filter(Student.id == student_id).first()
-
     if student is None:
         logger.warning(f"Student {student_id} not found")
-
     return student
 
 
@@ -43,8 +50,7 @@ def update_student(db: Session, student_id: int, data):
     student = db.query(Student).filter(Student.id == student_id).first()
 
     if student is None:
-        logger.warning(f"Student {student_id} not found for update")
-        return None
+        raise HTTPException(status_code=404, detail=f"Student {student_id} not found for update")
 
     # Replace the stored values with the new payload values.
     student.name = data.name
@@ -56,6 +62,18 @@ def update_student(db: Session, student_id: int, data):
 
     logger.info(f"Updated student {student_id}")
 
+    return student
+
+
+def update_student_or_404(db: Session, student_id: int, data):
+    student = get_student_or_404(db, student_id)
+    student.name = data.name
+    student.age = data.age
+
+    db.commit()
+    db.refresh(student)
+
+    logger.info(f"Updated student {student_id}")
     return student
 
 
@@ -73,3 +91,11 @@ def delete_student(db: Session, student_id: int):
 
     logger.info(f"Deleted student {student_id}")
     return True
+
+
+def delete_student_or_404(db: Session, student_id: int):
+    student = get_student_or_404(db, student_id)
+    db.delete(student)
+    db.commit()
+
+    logger.info(f"Deleted student {student_id}")
