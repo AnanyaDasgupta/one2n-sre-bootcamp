@@ -1,16 +1,15 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load environment variables from .env file
-load_dotenv()
 
-class Settings:
-    # Application settings
-    PORT: int = int(os.getenv("PORT", 8000))
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "info")
+class Settings(BaseSettings):
+    # Read the database connection string from the environment or .env file.
+    DATABASE_URL: str
+    LOG_LEVEL: str = "INFO"
 
-    # Database (we'll use this in next step)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
-# Create a single settings instance to use across the app
+# Shared settings instance imported across the application.
 settings = Settings()
