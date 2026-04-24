@@ -61,7 +61,7 @@ current:
 history:
 	uv run alembic history --verbose
 
-# Reset DB (⚠️ destructive, dev only)
+# Reset DB (dev only)
 reset-db:
 ifndef ENV
 	$(error ENV not set. Use ENV=dev)
