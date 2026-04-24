@@ -1,8 +1,9 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
 from app.api.v1.student_routes import router as student_router
-from app.core.database import engine, Base
+from app.core.database import Base, engine
 from app.core.logger import configure_logging
 
 
