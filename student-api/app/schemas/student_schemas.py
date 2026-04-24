@@ -1,10 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StudentCreate(BaseModel):
-    # Schema used for incoming create and update request bodies.
-    name: str
-    age: int
+    name: str = Field(..., example="John Doe")
+    age: int = Field(..., example=21)
 
 
 class StudentResponse(BaseModel):
@@ -12,6 +11,9 @@ class StudentResponse(BaseModel):
     id: int
     name: str
     age: int
+
+    class Config:
+        json_schema_extra = {"example": {"id": 1, "name": "John Doe", "age": 21}}
 
     # Allow FastAPI to serialize SQLAlchemy model instances into this schema.
     model_config = {"from_attributes": True}
