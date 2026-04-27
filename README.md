@@ -11,14 +11,26 @@ It is intended as a learning-friendly example of how a backend API is split into
 - SQLAlchemy-based database access
 - Environment-based configuration
 - Basic logging
-- A simple test suite
+- A simple test suite with isolated PostgreSQL integration tests
 
 ## Project Structure
 
 ```text
 one2n-sre-bootcamp/
 ├── README.md
+├── postman/
+│   └── Student-API.postman_collection.json
 └── student-api/
+    ├── .env
+    ├── .env.example
+    ├── Makefile
+    ├── README.md
+    ├── alembic/
+    │   ├── README
+    │   ├── env.py
+    │   ├── script.py.mako
+    │   └── versions/
+    │     
     ├── app/
     │   ├── api/v1/student_routes.py
     │   ├── core/
@@ -29,8 +41,10 @@ one2n-sre-bootcamp/
     │   ├── schemas/student_schemas.py
     │   ├── services/student_service.py
     │   └── main.py
-    ├── tests/test_health.py
-    ├── Makefile
+    ├── tests/
+    │   ├── conftest.py
+    │   ├── test_health.py
+    │   └── test_students.py
     ├── pyproject.toml
     └── uv.lock
 ```
@@ -57,13 +71,37 @@ From the repository root:
 
 ```bash
 cd student-api
-uv sync
+make install
 ```
 
 Create a `.env` file inside `student-api/`:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/students
+```
+
+## Alembic
+
+Database migrations are managed with Alembic via Makefile targets.
+
+Examples:
+
+```bash
+cd student-api
+make makemigration msg="add students table"
+make upgrade
+```
+
+To rollback the last migration:
+
+```bash
+make downgrade
+```
+
+To view migration history:
+
+```bash
+make history
 ```
 
 ## Run The Application
@@ -138,14 +176,29 @@ age  : integer, required
 
 ## Tests
 
+The `student-api/tests` directory includes integration tests with isolated PostgreSQL fixtures.
+The test suite uses `testcontainers` to spin up a temporary Postgres instance for each run.
+
 From the `student-api/` directory:
 
 ```bash
 make test
 ```
 
-## Notes
+## Postman
 
-- Tables are currently created at application startup with `Base.metadata.create_all(...)`.
-- Logging is initialized in `app/core/logger.py`.
-- The current API only stores `name` and `age` for each student.
+A Postman collection is available at `postman/Student-API.postman_collection.json` for manual API testing.
+
+## Newman
+
+Install Newman globally with npm:
+
+```bash
+npm install -g newman
+```
+
+You can run the collection from the command line with Newman:
+
+```bash
+newman run postman/Student-API.postman_collection.json
+```
