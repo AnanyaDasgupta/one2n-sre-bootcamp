@@ -14,5 +14,5 @@ class StudentResponse(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "json_schema_extra": {"example": {"id": 1, "name": "John Doe", "age": 21}}
+        "json_schema_extra": {"example": {"id": 1, "name": "John Doe", "age": 21}},
     }
