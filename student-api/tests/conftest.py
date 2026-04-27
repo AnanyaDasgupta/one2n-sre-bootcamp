@@ -1,23 +1,47 @@
-# Test configuration and fixtures
 import pytest
+from testcontainers.postgres import PostgresContainer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.database import Base
 from app.main import app
 from fastapi.testclient import TestClient
 from app.core.database import get_db
-from sqlalchemy import event
 
-# Create test database engine
-engine = create_engine(settings.DATABASE_URL)
-TestingSessionLocal = sessionmaker(bind=engine)
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    with PostgresContainer("postgres:15") as postgres:
+        yield postgres
+
+
+@pytest.fixture(scope="session")
+def engine(postgres_container):
+    engine = create_engine(postgres_container.get_connection_url())
+    Base.metadata.create_all(bind=engine)
+    return engine
+
+
+@pytest.fixture(scope="function")
+def db(engine):
+    connection = engine.connect()
+    transaction = connection.begin()
+
+    SessionLocal = sessionmaker(bind=connection)
+    session = SessionLocal()
+
+    yield session
+
+    session.close()
+    
+    if transaction.is_active:
+        transaction.rollback()
+
+    connection.close()
+
 
 @pytest.fixture
 def client(db):
-    # Override database dependency for testing
     def override_get_db():
         yield db
 
@@ -26,26 +50,3 @@ def client(db):
     yield TestClient(app)
 
     app.dependency_overrides.clear()
-
-@pytest.fixture(scope="function")
-def db():
-    # Create isolated database session per test
-    connection = engine.connect()
-    transaction = connection.begin()
-
-    session = TestingSessionLocal(bind=connection)
-
-    # Start nested transaction (SAVEPOINT)
-    nested = connection.begin_nested()
-
-    @event.listens_for(session, "after_transaction_end")
-    def restart_savepoint(sess, trans):
-        nonlocal nested
-        if not nested.is_active:
-            nested = connection.begin_nested()
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
