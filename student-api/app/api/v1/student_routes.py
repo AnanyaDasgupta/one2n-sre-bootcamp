@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.schemas.student_schemas import StudentCreate, StudentResponse
 from app.services import student_service
 
+# API router for student-related endpoints
 router = APIRouter(prefix="/api/v1/students", tags=["Students"])
 
 
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/api/v1/students", tags=["Students"])
     status_code=status.HTTP_201_CREATED,
 )
 def create_student(data: StudentCreate, db: Session = Depends(get_db)):
+    # Create a new student record
     return student_service.create_student(db, data)
 
 
@@ -22,6 +24,7 @@ def create_student(data: StudentCreate, db: Session = Depends(get_db)):
     response_model=list[StudentResponse],
 )
 def get_all_students(db: Session = Depends(get_db)):
+    # Retrieve all student records
     return student_service.get_all_students(db)
 
 
@@ -30,6 +33,7 @@ def get_all_students(db: Session = Depends(get_db)):
     response_model=StudentResponse,
 )
 def get_student(student_id: int, db: Session = Depends(get_db)):
+    # Retrieve a specific student by ID
     return student_service.get_student_or_404(db, student_id)
 
 
@@ -38,6 +42,7 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
     response_model=StudentResponse,
 )
 def update_student(student_id: int, data: StudentCreate, db: Session = Depends(get_db)):
+    # Update an existing student record
     return student_service.update_student(db, student_id, data)
 
 
@@ -46,4 +51,5 @@ def update_student(student_id: int, data: StudentCreate, db: Session = Depends(g
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_student(student_id: int, db: Session = Depends(get_db)):
+    # Delete a student record by ID
     student_service.delete_student(db, student_id)

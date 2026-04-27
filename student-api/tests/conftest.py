@@ -11,12 +11,14 @@ from app.core.database import get_db
 
 @pytest.fixture(scope="session")
 def postgres_container():
+    # Start a PostgreSQL container for testing
     with PostgresContainer("postgres:15") as postgres:
         yield postgres
 
 
 @pytest.fixture(scope="session")
 def engine(postgres_container):
+    # Create SQLAlchemy engine and initialize database schema
     engine = create_engine(postgres_container.get_connection_url())
     Base.metadata.create_all(bind=engine)
     return engine
@@ -24,6 +26,7 @@ def engine(postgres_container):
 
 @pytest.fixture(scope="function")
 def db(engine):
+    # Create a database session for each test function
     connection = engine.connect()
     transaction = connection.begin()
 
@@ -33,7 +36,7 @@ def db(engine):
     yield session
 
     session.close()
-    
+
     if transaction.is_active:
         transaction.rollback()
 
@@ -42,6 +45,7 @@ def db(engine):
 
 @pytest.fixture
 def client(db):
+    # Create FastAPI test client with database dependency override
     def override_get_db():
         yield db
 

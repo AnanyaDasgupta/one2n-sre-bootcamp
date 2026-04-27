@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_student(db: Session, data):
+    # Create a new student record in the database
     logger.debug("Creating student")
 
     try:
@@ -27,6 +28,7 @@ def create_student(db: Session, data):
 
 
 def get_all_students(db: Session):
+    # Retrieve all student records from the database
     logger.debug("Fetching all students")
 
     try:
@@ -41,6 +43,7 @@ def get_all_students(db: Session):
 
 
 def get_student_or_404(db: Session, student_id: int):
+    # Retrieve a student by ID or raise 404 if not found
     logger.debug(f"Looking up student ID: {student_id}")
 
     student = get_student_by_id(db, student_id)
@@ -54,11 +57,13 @@ def get_student_or_404(db: Session, student_id: int):
 
 
 def get_student_by_id(db: Session, student_id: int):
+    # Query a student record by ID
     logger.debug(f"Querying student ID: {student_id}")
     return db.get(Student, student_id)
 
 
 def update_student(db: Session, student_id: int, data):
+    # Update an existing student record with new data
     logger.debug(f"Updating student ID: {student_id}")
 
     try:
@@ -80,6 +85,7 @@ def update_student(db: Session, student_id: int, data):
 
 
 def delete_student(db: Session, student_id: int):
+    # Delete a student record from the database
     logger.debug(f"Deleting student ID: {student_id}")
 
     try:

@@ -1,5 +1,6 @@
 # Test suite for Student API endpoints
 
+
 def test_create_student(client):
     # Test successful student creation
     payload = {"name": "John Doe", "age": 21}
