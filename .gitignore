@@ -104,3 +104,11 @@ htmlcov/
 
 =0.9.0
 =9.0.3
+
+# ----------------------
+# Alembic
+# ----------------------
+# Keep migrations, ignore compiled/cache
+student-api/alembic/versions/*.py
+alembic/__pycache__/
+
