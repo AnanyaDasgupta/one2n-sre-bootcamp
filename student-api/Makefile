@@ -71,3 +71,11 @@ ifeq ($(ENV),prod)
 endif
 	uv run alembic downgrade base
 	uv run alembic upgrade head
+
+# ----------------------
+# Postman tests
+# 
+
+postman-test:
+	newman run ../postman/Student-API.postman_collection.json \
+	-e ../postman/local.postman_environment.json
