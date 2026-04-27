@@ -8,93 +8,90 @@ logger = logging.getLogger(__name__)
 
 
 def create_student(db: Session, data):
-    # Convert the validated request data into a SQLAlchemy model instance.
-    logger.info(f"Creating student: {data.name}")
+    logger.debug("Creating student")
 
-    student = Student(name=data.name, age=data.age)
+    try:
+        student = Student(name=data.name, age=data.age)
 
-    # Persist the row, then refresh it so generated values like id are available.
-    db.add(student)
-    db.commit()
-    db.refresh(student)
+        db.add(student)
+        db.commit()
+        db.refresh(student)
 
-    return student
+        logger.info(f"Created student ID: {student.id}")
+        return student
+
+    except Exception as e:
+        logger.error(f"Error creating student: {str(e)}", exc_info=True)
+        db.rollback()
+        raise
 
 
 def get_all_students(db: Session):
-    # Return all student rows as ORM objects.
-    logger.info("Fetching all students")
-    return db.query(Student).all()
+    logger.debug("Fetching all students")
+
+    try:
+        students = db.query(Student).all()
+        logger.info(f"Fetched {len(students)} students")
+        return students
+
+    except Exception as e:
+        logger.error(f"Error fetching students: {str(e)}", exc_info=True)
+        db.rollback()
+        raise
 
 
 def get_student_or_404(db: Session, student_id: int):
+    logger.debug(f"Looking up student ID: {student_id}")
+
     student = get_student_by_id(db, student_id)
+
     if student is None:
+        logger.warning(f"Student not found: ID {student_id}")
         raise HTTPException(status_code=404, detail=f"Student {student_id} not found")
+
+    logger.debug(f"Found student ID: {student_id}")
     return student
 
 
 def get_student_by_id(db: Session, student_id: int):
-    # Look up a single row by primary key.
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if student is None:
-        logger.warning(f"Student {student_id} not found")
-    return student
+    logger.debug(f"Querying student ID: {student_id}")
+    return db.get(Student, student_id)
 
 
 def update_student(db: Session, student_id: int, data):
-    # Load the existing row before applying updates.
-    student = db.query(Student).filter(Student.id == student_id).first()
+    logger.debug(f"Updating student ID: {student_id}")
 
-    if student is None:
-        raise HTTPException(
-            status_code=404, detail=f"Student {student_id} not found for update"
-        )
+    try:
+        student = get_student_or_404(db, student_id)
 
-    # Replace the stored values with the new payload values.
-    student.name = data.name
-    student.age = data.age
+        student.name = data.name
+        student.age = data.age
 
-    # Commit the changes and reload the row from the database.
-    db.commit()
-    db.refresh(student)
+        db.commit()
+        db.refresh(student)
 
-    logger.info(f"Updated student {student_id}")
+        logger.info(f"Updated student ID: {student_id}")
+        return student
 
-    return student
-
-
-def update_student_or_404(db: Session, student_id: int, data):
-    student = get_student_or_404(db, student_id)
-    student.name = data.name
-    student.age = data.age
-
-    db.commit()
-    db.refresh(student)
-
-    logger.info(f"Updated student {student_id}")
-    return student
+    except Exception as e:
+        logger.error(f"Error updating student ID {student_id}: {str(e)}", exc_info=True)
+        db.rollback()
+        raise
 
 
 def delete_student(db: Session, student_id: int):
-    # Fetch the row first so we know whether there is anything to delete.
-    student = db.query(Student).filter(Student.id == student_id).first()
+    logger.debug(f"Deleting student ID: {student_id}")
 
-    if student is None:
-        logger.warning(f"Student {student_id} not found for deletion")
-        return False
+    try:
+        student = get_student_or_404(db, student_id)
 
-    # Delete the row permanently and commit the transaction.
-    db.delete(student)
-    db.commit()
+        db.delete(student)
+        db.commit()
 
-    logger.info(f"Deleted student {student_id}")
-    return True
+        logger.info(f"Deleted student ID: {student_id}")
+        return True
 
-
-def delete_student_or_404(db: Session, student_id: int):
-    student = get_student_or_404(db, student_id)
-    db.delete(student)
-    db.commit()
-
-    logger.info(f"Deleted student {student_id}")
+    except Exception as e:
+        logger.error(f"Error deleting student ID {student_id}: {str(e)}", exc_info=True)
+        db.rollback()
+        raise
