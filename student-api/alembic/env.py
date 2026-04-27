@@ -1,10 +1,10 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
+import app.models 
 
 from app.core.config import settings
 from app.core.database import Base
-from app.models.student import Student  # noqa: F401
 
 config = context.config
 
@@ -41,4 +41,7 @@ def run_migrations_online():
             context.run_migrations()
 
 
-run_migrations_online()
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
