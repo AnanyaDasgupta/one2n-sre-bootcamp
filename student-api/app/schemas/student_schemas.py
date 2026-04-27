@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class StudentCreate(BaseModel):
-    name: str = Field(..., example="John Doe")
-    age: int = Field(..., example=21)
+    name: str = Field(..., json_schema_extra={"example": "John Doe"})
+    age: int = Field(..., json_schema_extra={"example": 21})
 
 
 class StudentResponse(BaseModel):
@@ -12,8 +12,7 @@ class StudentResponse(BaseModel):
     name: str
     age: int
 
-    class Config:
-        json_schema_extra = {"example": {"id": 1, "name": "John Doe", "age": 21}}
-
-    # Allow FastAPI to serialize SQLAlchemy model instances into this schema.
-    model_config = {"from_attributes": True}
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {"example": {"id": 1, "name": "John Doe", "age": 21}}
+    }
