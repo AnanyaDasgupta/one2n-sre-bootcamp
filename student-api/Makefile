@@ -57,6 +57,10 @@ downgrade:
 current:
 	uv run alembic current
 
+# Show latest migration
+heads:
+	uv run alembic heads
+
 # Show migration history
 history:
 	uv run alembic history --verbose
