@@ -1,274 +1,204 @@
-# Student REST API (SRE Bootcamp)
+# Student API
 
-## 📌 Overview
+This repository contains a small FastAPI service for managing student records.
+It is intended as a learning-friendly example of how a backend API is split into routes, services, schemas, models, and database configuration.
 
-This project implements a simple REST API for managing student records.
-It is designed following **12-Factor App principles** and focuses on production-ready practices such as configuration management, logging, and database migrations.
+## What The App Includes
 
----
+- CRUD endpoints for students
+- Versioned API routes under `/api/v1`
+- A health check endpoint
+- SQLAlchemy-based database access
+- Environment-based configuration
+- Basic logging
+- A simple test suite with isolated PostgreSQL integration tests
 
-## 🚀 Features
+## Project Structure
 
-* CRUD operations for students
-* Versioned API (`/api/v1`)
-* Healthcheck endpoint
-* Database persistence
-* Environment-based configuration
-* Logging with levels
-* Database migrations
-* Unit tests
-
----
-
-## 🧱 Tech Stack
-
-* Python
-* FastAPI
-* SQLAlchemy
-* Alembic
-* PostgreSQL
-* uv (Package Manager)
-
----
-
-## 📂 Project Structure
-
-```
-student-api/
-├── app/
-│   ├── config.py
-│   ├── main.py
-│   └── ...
-├── tests/
-│   └── test_health.py
-├── .env
-├── .env.example
-├── .python-version
-├── .venv/
-├── pyproject.toml
-├── uv.lock
-└── Makefile
----
-
-## 🛠️ Installation & Setup
-
-### Prerequisites
-
-* Python 3.14+
-* uv package manager
-
-### Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd one2n-sre-bootcamp
-   ```
-
-2. **Navigate to the API directory**
-   ```bash
-   cd student-api
-   ```
-
-3. **Install dependencies**
-   ```bash
-   uv sync
-   ```
-
-4. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-5. **Run the application**
-   ```bash
-   make run
-   ```
-
-6. **Run tests**
-   ```bash
-   make test
-   ```
-
----
-
-### Base URL
-
-```
-/api/v1
+```text
+one2n-sre-bootcamp/
+├── README.md
+├── postman/
+│   └── Student-API.postman_collection.json
+└── student-api/
+    ├── .env
+    ├── .env.example
+    ├── Makefile
+    ├── README.md
+    ├── alembic/
+    │   ├── README
+    │   ├── env.py
+    │   ├── script.py.mako
+    │   └── versions/
+    │     
+    ├── app/
+    │   ├── api/v1/student_routes.py
+    │   ├── core/
+    │   │   ├── config.py
+    │   │   ├── database.py
+    │   │   └── logger.py
+    │   ├── models/student.py
+    │   ├── schemas/student_schemas.py
+    │   ├── services/student_service.py
+    │   └── main.py
+    ├── tests/
+    │   ├── conftest.py
+    │   ├── test_health.py
+    │   └── test_students.py
+    ├── pyproject.toml
+    └── uv.lock
 ```
 
----
+## How The Code Is Organized
 
-### 1. Healthcheck
+- `app/main.py` creates the FastAPI app, adds startup logic, and includes routers.
+- `app/api/v1/student_routes.py` defines the HTTP endpoints.
+- `app/services/student_service.py` contains the database-facing business logic.
+- `app/models/student.py` defines the SQLAlchemy model for the `students` table.
+- `app/schemas/student_schemas.py` defines the request and response shapes.
+- `app/core/database.py` creates the engine and database session dependency.
+- `app/core/config.py` loads configuration from environment variables.
 
-**GET /healthcheck**
+## Prerequisites
 
-Response:
+- Python 3.14+
+- `uv`
+- PostgreSQL
 
-```json
-{ "status": "ok" }
-```
+## Setup
 
----
-
-### 2. Create Student
-
-**POST /api/v1/students**
-
-Request:
-
-```json
-{
-  "name": "John Doe",
-  "age": 20,
-  "email": "john@example.com"
-}
-```
-
-Response:
-
-```json
-{
-  "id": 1,
-  "name": "John Doe",
-  "age": 20,
-  "email": "john@example.com"
-}
-```
-
----
-
-### 3. Get All Students
-
-**GET /api/v1/students**
-
----
-
-### 4. Get Student by ID
-
-**GET /api/v1/students/{id}**
-
----
-
-### 5. Update Student
-
-**PUT /api/v1/students/{id}**
-
----
-
-### 6. Delete Student
-
-**DELETE /api/v1/students/{id}**
-
----
-
-## 🗄️ Data Model
-
-Student:
-
-```
-id: integer (primary key)
-name: string
-age: integer
-email: string (unique)
-```
-
----
-
-## ⚙️ Configuration
-
-All configuration is managed via environment variables:
-
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/students
-PORT=8000
-LOG_LEVEL=info
-```
-
----
-
-## 🛠️ Setup & Installation
-
-### 1. Clone Repository
+From the repository root:
 
 ```bash
-git clone <repo-url>
 cd student-api
+make install
 ```
 
-### 2. Create Virtual Environment
+Create a `.env` file inside `student-api/`:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/students
+```
+
+## Alembic
+
+Database migrations are managed with Alembic via Makefile targets.
+
+Examples:
 
 ```bash
-python -m venv venv
-source venv/bin/activate
+cd student-api
+make makemigration msg="add students table"
+make upgrade
 ```
 
-### 3. Install Dependencies
+To rollback the last migration:
 
 ```bash
-pip install -r requirements.txt
+make downgrade
 ```
 
----
-
-## 🗄️ Database Setup
-
-### Run Migrations
+To view migration history:
 
 ```bash
-alembic upgrade head
+make history
 ```
 
----
+## Run The Application
 
-## ▶️ Running the Application
+From the `student-api/` directory:
 
 ```bash
-uvicorn app.main:app --reload
+make run
 ```
 
-App will run on:
+For development with auto-reload:
 
+```bash
+make dev
 ```
+
+The app runs on:
+
+```text
 http://localhost:8000
 ```
 
----
+## Endpoints
 
-## 🧪 Running Tests
+`GET /`
 
-```bash
-pytest
+```json
+{
+  "message": "Welcome to the Student API!"
+}
 ```
 
----
+`GET /healthcheck`
 
-## ⚡ Makefile Commands
-
-```bash
-make run        # start server
-make test       # run tests
-make migrate    # apply migrations
+```json
+{
+  "status": "ok"
+}
 ```
 
----
+`POST /api/v1/students`
 
-## 📬 Postman Collection
+```json
+{
+  "name": "John Doe",
+  "age": 20
+}
+```
 
-A Postman collection is included in the repository for testing all endpoints.
+`GET /api/v1/students`
 
----
+`GET /api/v1/students/{student_id}`
 
-## 🪵 Logging
+`PUT /api/v1/students/{student_id}`
 
-* Logs are written to stdout
-* Log level is controlled via `LOG_LEVEL`
-* Includes request and error logging
+```json
+{
+  "name": "Jane Doe",
+  "age": 21
+}
+```
 
----
+`DELETE /api/v1/students/{student_id}`
 
+## Student Model
 
+```text
+id   : integer, primary key
+name : string, required
+age  : integer, required
+```
 
+## Tests
 
+The `student-api/tests` directory includes integration tests with isolated PostgreSQL fixtures.
+The test suite uses `testcontainers` to spin up a temporary Postgres instance for each run.
+
+From the `student-api/` directory:
+
+```bash
+make test
+```
+
+## Postman
+
+A Postman collection is available at `postman/Student-API.postman_collection.json` for manual API testing.
+
+## Newman
+
+Install Newman globally with npm:
+
+```bash
+npm install -g newman
+```
+
+You can run the collection from the command line with Newman:
+
+```bash
+newman run postman/Student-API.postman_collection.json
+```
