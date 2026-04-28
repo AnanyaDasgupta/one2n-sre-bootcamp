@@ -22,6 +22,7 @@ def create_student(data: StudentCreate, db: Session = Depends(get_db)):
 @router.get(
     "",
     response_model=list[StudentResponse],
+    status_code=status.HTTP_200_OK,
 )
 def get_all_students(db: Session = Depends(get_db)):
     # Retrieve all student records
@@ -31,6 +32,7 @@ def get_all_students(db: Session = Depends(get_db)):
 @router.get(
     "/{student_id}",
     response_model=StudentResponse,
+    status_code=status.HTTP_200_OK,
 )
 def get_student(student_id: int, db: Session = Depends(get_db)):
     # Retrieve a specific student by ID
@@ -40,6 +42,7 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
 @router.put(
     "/{student_id}",
     response_model=StudentResponse,
+    status_code=status.HTTP_200_OK,
 )
 def update_student(student_id: int, data: StudentCreate, db: Session = Depends(get_db)):
     # Update an existing student record
