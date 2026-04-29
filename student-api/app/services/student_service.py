@@ -12,7 +12,7 @@ def create_student(db: Session, data):
     logger.debug("Creating student")
 
     try:
-        student = Student(name=data.name, age=data.age)
+        student = Student(name=data.name, age=data.age, email=data.email, phone_number=data.phone_number, address=data.address, company=data.company)
 
         db.add(student)
         db.commit()
@@ -71,6 +71,10 @@ def update_student(db: Session, student_id: int, data):
 
         student.name = data.name
         student.age = data.age
+        student.email = data.email
+        student.phone_number = data.phone_number
+        student.address = data.address
+        student.company = data.company
 
         db.commit()
         db.refresh(student)
