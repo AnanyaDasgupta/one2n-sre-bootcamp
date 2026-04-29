@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "⏳ Waiting for database..."
+echo "Waiting for database..."
 
 until pg_isready -h student-db -p 5432 -U student_user; do
   sleep 2
