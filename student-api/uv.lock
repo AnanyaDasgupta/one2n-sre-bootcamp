@@ -490,8 +490,13 @@ dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
     { name = "httpx" },
+<<<<<<< HEAD
     { name = "psycopg2-binary" },
     { name = "pydantic" },
+=======
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+>>>>>>> 405e749 (chore(uv): update uv dependency for pydantic and pytest)
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -509,8 +514,13 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.18.4" },
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+<<<<<<< HEAD
     { name = "psycopg2-binary", specifier = ">=2.9.12" },
     { name = "pydantic", specifier = ">=2.0" },
+=======
+    { name = "pydantic-settings", specifier = ">=2.14.0" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+>>>>>>> 405e749 (chore(uv): update uv dependency for pydantic and pytest)
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "uvicorn", specifier = ">=0.45.0" },
 ]
