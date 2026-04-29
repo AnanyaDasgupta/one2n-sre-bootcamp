@@ -8,6 +8,8 @@ from app.core.config import settings
 # Configure application logging
 configure_logging()
 
+print("ENV VALUE:", settings.ENV)
+
 app = FastAPI(
     title="Student API",
     description="API for managing students",
