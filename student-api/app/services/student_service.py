@@ -12,7 +12,14 @@ def create_student(db: Session, data):
     logger.debug("Creating student")
 
     try:
-        student = Student(name=data.name, age=data.age, email=data.email, phone_number=data.phone_number, address=data.address, company=data.company)
+        student = Student(
+            name=data.name,
+            age=data.age,
+            email=data.email,
+            phone_number=data.phone_number,
+            address=data.address,
+            company=data.company,
+        )
 
         db.add(student)
         db.commit()
