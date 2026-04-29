@@ -1,204 +1,233 @@
 # Student API
 
-This repository contains a small FastAPI service for managing student records.
-It is intended as a learning-friendly example of how a backend API is split into routes, services, schemas, models, and database configuration.
+A simple FastAPI service for managing student records.
+This project demonstrates a clean backend structure with routes, services, schemas, models, and database migrations.
 
-## What The App Includes
+---
 
-- CRUD endpoints for students
-- Versioned API routes under `/api/v1`
-- A health check endpoint
-- SQLAlchemy-based database access
-- Environment-based configuration
-- Basic logging
-- A simple test suite with isolated PostgreSQL integration tests
+## Features
+
+* CRUD operations for students
+* Versioned APIs (`/api/v1`)
+* Health check endpoint
+* SQLAlchemy for database access
+* Alembic for schema migrations
+* Environment-based configuration
+* Integration tests with isolated PostgreSQL instances
+
+---
 
 ## Project Structure
 
 ```text
-one2n-sre-bootcamp/
-├── README.md
-├── postman/
-│   └── Student-API.postman_collection.json
-└── student-api/
-    ├── .env
-    ├── .env.example
-    ├── Makefile
-    ├── README.md
-    ├── alembic/
-    │   ├── README
-    │   ├── env.py
-    │   ├── script.py.mako
-    │   └── versions/
-    │     
-    ├── app/
-    │   ├── api/v1/student_routes.py
-    │   ├── core/
-    │   │   ├── config.py
-    │   │   ├── database.py
-    │   │   └── logger.py
-    │   ├── models/student.py
-    │   ├── schemas/student_schemas.py
-    │   ├── services/student_service.py
-    │   └── main.py
-    ├── tests/
-    │   ├── conftest.py
-    │   ├── test_health.py
-    │   └── test_students.py
-    ├── pyproject.toml
-    └── uv.lock
+student-api/
+├── alembic/                # Migration configuration and versions
+├── app/
+│   ├── api/v1/            # Route handlers
+│   ├── core/              # Config, DB, logging
+│   ├── models/            # SQLAlchemy models
+│   ├── schemas/           # Pydantic schemas
+│   ├── services/          # Business logic
+│   └── main.py            # Application entrypoint
+├── tests/                 # Integration tests
+├── .env.example
+├── Dockerfile
+├── .dockerignore
+├── entrypoint.sh
+├── Makefile
+├── pyproject.toml
+└── uv.lock
 ```
 
-## How The Code Is Organized
+---
 
-- `app/main.py` creates the FastAPI app, adds startup logic, and includes routers.
-- `app/api/v1/student_routes.py` defines the HTTP endpoints.
-- `app/services/student_service.py` contains the database-facing business logic.
-- `app/models/student.py` defines the SQLAlchemy model for the `students` table.
-- `app/schemas/student_schemas.py` defines the request and response shapes.
-- `app/core/database.py` creates the engine and database session dependency.
-- `app/core/config.py` loads configuration from environment variables.
+## Architecture Overview
+
+* **Routes (`api/`)** → Handle HTTP requests/responses
+* **Services (`services/`)** → Business logic + DB interaction
+* **Models (`models/`)** → Database schema (SQLAlchemy)
+* **Schemas (`schemas/`)** → Request/response validation
+* **Core (`core/`)** → Configuration, DB setup, logging
+
+This separation keeps the codebase modular, testable, and maintainable.
+
+---
 
 ## Prerequisites
 
-- Python 3.14+
-- `uv`
-- PostgreSQL
+* Python 3.14+
+* uv
+* PostgreSQL
 
-## Setup
+---
 
-From the repository root:
+## Local Setup
 
 ```bash
 cd student-api
 make install
 ```
 
-Create a `.env` file inside `student-api/`:
+Create a `.env` file:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/students
+DATABASE_URL=postgresql://user:password@localhost:5432/students_db
+ENV=dev
 ```
 
-## Alembic
+---
 
-Database migrations are managed with Alembic via Makefile targets.
-
-Examples:
+## Database Migrations (Alembic)
 
 ```bash
-cd student-api
-make makemigration msg="add students table"
+make makemigration msg="create students table"
 make upgrade
 ```
 
-To rollback the last migration:
+Other useful commands:
 
 ```bash
-make downgrade
+make downgrade     # rollback last migration
+make history       # view migration history
+make current       # show current revision
 ```
 
-To view migration history:
+---
 
-```bash
-make history
-```
+## Run the Application
 
-## Run The Application
-
-From the `student-api/` directory:
+Production mode:
 
 ```bash
 make run
 ```
 
-For development with auto-reload:
+Development mode (auto-reload):
 
 ```bash
 make dev
 ```
 
-The app runs on:
+Access the app:
 
-```text
-http://localhost:8000
+* API: http://localhost:8000
+* Docs (dev only): http://localhost:8000/docs
+
+---
+
+## Docker
+
+### 1. Build Image
+
+```bash
+docker build -t student-api:v0.1.0 .
 ```
 
-## Endpoints
+---
 
-`GET /`
+### 2. Create Network
 
-```json
-{
-  "message": "Welcome to the Student API!"
-}
+```bash
+docker network create student-network
 ```
 
-`GET /healthcheck`
+---
 
-```json
-{
-  "status": "ok"
-}
+### 3. Run PostgreSQL
+
+```bash
+docker run -d \
+  --name student-db \
+  --network student-network \
+  -e POSTGRES_USER=<user-name> \
+  -e POSTGRES_PASSWORD=<password> \
+  -e POSTGRES_DB=<db-name> \
+  postgres:15
 ```
 
-`POST /api/v1/students`
+---
 
-```json
-{
-  "name": "John Doe",
-  "age": 20
-}
+### 4. Run API Container
+
+Ensure `.env` contains:
+
+```env
+DATABASE_URL=postgresql://user-name:password@db_container-name:5432/db-name
+ENV=dev
 ```
 
-`GET /api/v1/students`
-
-`GET /api/v1/students/{student_id}`
-
-`PUT /api/v1/students/{student_id}`
-
-```json
-{
-  "name": "Jane Doe",
-  "age": 21
-}
+```bash
+docker run -d \
+  --name student-api \
+  --network student-network \
+  --env-file .env \
+  -p 8000:8000 \
+  student-api
 ```
 
-`DELETE /api/v1/students/{student_id}`
+or 
 
-## Student Model
-
-```text
-id   : integer, primary key
-name : string, required
-age  : integer, required
+```bash
+docker run -d \
+  --name student-api \
+  --network student-network \
+  -e DATABASE_URL = <database-url>
+  -p 8000:8000 \
+  student-api:v0.1.0
 ```
+
+---
+
+### 5. Run Migrations
+
+Migrations are handled by entrypoint.sh, once the container is up.
+
+---
+
+### 6. Access API
+
+* API: http://localhost:8000
+* Docs (dev only): http://localhost:8000/docs
+
+---
 
 ## Tests
-
-The `student-api/tests` directory includes integration tests with isolated PostgreSQL fixtures.
-The test suite uses `testcontainers` to spin up a temporary Postgres instance for each run.
-
-From the `student-api/` directory:
 
 ```bash
 make test
 ```
 
+Tests use `testcontainers` to spin up an isolated PostgreSQL instance.
+
+---
+
 ## Postman
 
-A Postman collection is available at `postman/Student-API.postman_collection.json` for manual API testing.
+```text
+postman/Student-API.postman_collection.json
+```
 
-## Newman
-
-Install Newman globally with npm:
+Run with Newman:
 
 ```bash
 npm install -g newman
+newman run postman/Student-API.postman_collection.json
 ```
 
-You can run the collection from the command line with Newman:
+---
+
+## Notes
+
+* Inside Docker, set the db container name as the database host (not `localhost`)
+* Environment variables must be injected at runtime (`--env-file`)
+* Ensure DB container is ready before running migrations
+
+---
+
+## Cleanup
 
 ```bash
-newman run postman/Student-API.postman_collection.json
+docker stop student-api student-db
+docker rm student-api student-db
+docker network rm student-network
 ```
