@@ -118,6 +118,27 @@ docker-clean:
 	docker rm $(API_CONTAINER) $(DB_CONTAINER) || true
 	docker network rm $(NETWORK_NAME) || true
 
+
+# ----------------------
+# Docker (local dev)
+# ----------------------
+
+build:
+	docker-compose build
+
+up:
+	docker-compose up --build
+
+down:
+	docker-compose down
+
+logs:
+	docker-compose logs -f
+
+restart:
+	docker-compose down && docker-compose up --build
+
+
 # ----------------------
 # Postman tests
 # ----------------------
