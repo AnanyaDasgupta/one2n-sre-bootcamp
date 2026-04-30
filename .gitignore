@@ -102,10 +102,12 @@ htmlcov/
 # Logs
 *.log
 
+# UV Cache
+.ruff_cache/
+
 # ----------------------
 # Alembic
 # ----------------------
 # Keep migrations, ignore compiled/cache
-student-api/alembic/versions/*.py
 alembic/__pycache__/
-
+test.db
