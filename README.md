@@ -55,9 +55,14 @@ This separation keeps the codebase modular, testable, and maintainable.
 
 ## Prerequisites
 
+Ensure the following tools are installed:
+
 * Python 3.14+
-* uv
-* PostgreSQL
+* uv (Python package manager)
+* Docker
+* Make
+* PostgreSQL (only for local non-Docker setup)
+* (Optional) Node.js (for running Postman collections via Newman)
 
 ---
 
@@ -77,24 +82,30 @@ ENV=dev
 
 ---
 
-## Database Migrations (Alembic)
+## Makefile Workflow
+
+Run the following commands **in order** when setting up the project locally:
+
+### 1. Install dependencies
 
 ```bash
-make makemigration msg="create students table"
+make install
+```
+
+### 2. Run database migrations
+
+```bash
+make makemigration msg="init"
 make upgrade
 ```
 
-Other useful commands:
+### 3. Start the application
+
+Development mode (auto-reload):
 
 ```bash
-make downgrade     # rollback last migration
-make history       # view migration history
-make current       # show current revision
+make dev
 ```
-
----
-
-## Run the Application
 
 Production mode:
 
@@ -102,10 +113,31 @@ Production mode:
 make run
 ```
 
-Development mode (auto-reload):
+---
+
+### Other useful commands
+
+```bash
+make test        # Run tests
+make downgrade   # Rollback last migration
+make history     # View migration history
+make current     # Show current DB revision
+```
+
+---
+
+## Run the Application
+
+### Development mode (auto-reload)
 
 ```bash
 make dev
+```
+
+### Production mode
+
+```bash
+make run
 ```
 
 Access the app:
@@ -115,7 +147,25 @@ Access the app:
 
 ---
 
+## Tests
+
+```bash
+make test
+```
+
+Tests use `testcontainers` to spin up an isolated PostgreSQL instance.
+
+---
+
 ## Docker
+
+### Important Notes
+
+* Ensure Docker is running
+* `.env` file must exist
+* Inside Docker, use the container name (`student-db`) as DB host (not `localhost`)
+
+---
 
 ### 1. Build Image
 
@@ -147,14 +197,18 @@ docker run -d \
 
 ---
 
-### 4. Run API Container
+### 4. Configure Environment
 
-Ensure `.env` contains:
+Create `.env`:
 
 ```env
-DATABASE_URL=postgresql://user-name:password@db_container-name:5432/db-name
+DATABASE_URL=postgresql://user-name:password@student-db:5432/db-name
 ENV=dev
 ```
+
+---
+
+### 5. Run API Container
 
 ```bash
 docker run -d \
@@ -162,52 +216,28 @@ docker run -d \
   --network student-network \
   --env-file .env \
   -p 8000:8000 \
-  student-api
-```
-
-or 
-
-```bash
-docker run -d \
-  --name student-api \
-  --network student-network \
-  -e DATABASE_URL = <database-url>
-  -p 8000:8000 \
   student-api:v0.1.0
 ```
 
 ---
 
-### 5. Run Migrations
+### 6. Migrations
 
-Migrations are handled by entrypoint.sh, once the container is up.
+Migrations are automatically handled by `entrypoint.sh`:
+
+* Waits for database readiness
+* Runs Alembic migrations
 
 ---
 
-### 6. Access API
+### 7. Access API
 
 * API: http://localhost:8000
 * Docs (dev only): http://localhost:8000/docs
 
 ---
 
-## Tests
-
-```bash
-make test
-```
-
-Tests use `testcontainers` to spin up an isolated PostgreSQL instance.
-
----
-
 ## Postman
-
-```text
-postman/Student-API.postman_collection.json
-```
-
-Run with Newman:
 
 ```bash
 npm install -g newman
@@ -216,11 +246,17 @@ newman run postman/Student-API.postman_collection.json
 
 ---
 
-## Notes
+## Important Notes
 
-* Inside Docker, set the db container name as the database host (not `localhost`)
-* Environment variables must be injected at runtime (`--env-file`)
-* Ensure DB container is ready before running migrations
+* Do **not use `localhost` inside Docker**
+* Always use container name (`student-db`)
+* Environment variables must be injected via:
+
+  ```
+  --env-file .env
+  ```
+* Database readiness is handled via `pg_isready` using `DATABASE_URL`
+* CLI tools (alembic, fastapi) are available via `.venv`
 
 ---
 
