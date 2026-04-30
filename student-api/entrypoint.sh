@@ -1,10 +1,16 @@
 #!/bin/sh
 set -e
 
-until pg_isready -d "$DATABASE_URL"; do
+echo "Waiting for database..."
+
+until pg_isready -h student-db -p 5432 -U student_user; do
   sleep 2
 done
 
+echo "Database is ready!"
+
+echo "Running migrations..."
 alembic upgrade head
 
+echo "Starting FastAPI app..."
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000

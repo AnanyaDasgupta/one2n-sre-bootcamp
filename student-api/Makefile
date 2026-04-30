@@ -1,5 +1,8 @@
 # Declare commands (not files)
-.PHONY: install run dev test lint format migrate makemigration upgrade downgrade current history reset-db
+.PHONY: install run dev test lint format \
+        makemigration upgrade downgrade current heads history reset-db \
+        docker-build docker-network docker-db docker-run docker-migrate docker-stop docker-clean \
+        postman-test
 
 # Load environment variables if .env exists
 ifneq (,$(wildcard .env))
@@ -8,6 +11,10 @@ export
 endif
 
 PORT ?= 8000
+IMAGE_NAME ?= student-api
+NETWORK_NAME ?= student-network
+DB_CONTAINER ?= student-db
+API_CONTAINER ?= student-api
 
 # ----------------------
 # Install dependencies
@@ -16,12 +23,11 @@ install:
 	uv sync
 
 # ----------------------
-# Run app
+# Run app (local)
 # ----------------------
 run:
 	uv run uvicorn app.main:app --host 0.0.0.0 --port $(PORT)
 
-# Dev mode (auto reload)
 dev:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port $(PORT)
 
@@ -38,34 +44,26 @@ format:
 	uv run ruff format .
 
 # ----------------------
-# Alembic (DB migrations)
+# Alembic (local DB)
 # ----------------------
-
-# Create migration (usage: make makemigration msg="your message")
 makemigration:
 	uv run alembic revision --autogenerate -m "$(msg)"
 
-# Apply migrations
 upgrade:
 	uv run alembic upgrade head
 
-# Rollback last migration
 downgrade:
 	uv run alembic downgrade -1
 
-# Show current revision
 current:
 	uv run alembic current
 
-# Show latest migration
 heads:
 	uv run alembic heads
 
-# Show migration history
 history:
 	uv run alembic history --verbose
 
-# Reset DB (dev only)
 reset-db:
 ifndef ENV
 	$(error ENV not set. Use ENV=dev)
@@ -77,9 +75,52 @@ endif
 	uv run alembic upgrade head
 
 # ----------------------
-# Postman tests
-# 
+# Docker
+# ----------------------
 
+# Build image
+docker-build:
+	docker build -t $(IMAGE_NAME) .
+
+# Create network
+docker-network:
+	docker network create $(NETWORK_NAME) || true
+
+# Run Postgres container
+docker-db:
+	docker run -d \
+		--name $(DB_CONTAINER) \
+		--network $(NETWORK_NAME) \
+		-e POSTGRES_USER=student_user \
+		-e POSTGRES_PASSWORD=password123 \
+		-e POSTGRES_DB=students_db \
+		postgres:15
+
+# Run API container
+docker-run:
+	docker run -d \
+		--name $(API_CONTAINER) \
+		--network $(NETWORK_NAME) \
+		--env-file .env \
+		-p $(PORT):8000 \
+		$(IMAGE_NAME)
+
+# Run migrations inside container
+docker-migrate:
+	docker exec -it $(API_CONTAINER) alembic upgrade head
+
+# Stop containers
+docker-stop:
+	docker stop $(API_CONTAINER) $(DB_CONTAINER) || true
+
+# Remove containers + network
+docker-clean:
+	docker rm $(API_CONTAINER) $(DB_CONTAINER) || true
+	docker network rm $(NETWORK_NAME) || true
+
+# ----------------------
+# Postman tests
+# ----------------------
 postman-test:
 	newman run ../postman/Student-API.postman_collection.json \
-	-e ../postman/local.postman_environment.json
+		-e ../postman/local.postman_environment.json
