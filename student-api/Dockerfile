@@ -1,56 +1,48 @@
 # ---------- Base Image ----------
-FROM python:3.14-slim AS base
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    UV_NO_DEV=1 \
+    PATH="/app/.venv/bin:$PATH"
 
+# ---------- Install uv (pinned) ----------
+COPY --from=ghcr.io/astral-sh/uv:0.4.30 /uv /uvx /bin/
+
+# ---------- Create non-root user ----------
+RUN groupadd -g 999 appuser \
+    && useradd -m -r -u 999 -g appuser appuser
+
+# ---------- Set workdir ----------
 WORKDIR /app
 
-# ---------- Dependencies Layer ----------
-FROM base AS deps
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
-
-# Install dependencies
-RUN pip install --no-cache-dir uv \
-    && uv pip install --system . \
-    && rm -rf /root/.cache
-
-# ---------- Final Runtime Image ----------
-FROM base AS final
-
-# Install runtime dependency
+# ---------- Install system dependencies EARLY ----------
+# (better caching; rarely changes)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -m appuser
+# ---------- Copy dependency files ----------
+COPY pyproject.toml uv.lock ./
 
-# Copy Python packages
-COPY --from=deps /usr/local /usr/local
+# Install ONLY dependencies (no project yet)
+RUN uv sync --locked --no-install-project
 
-# Copy app files
+# ---------- Copy application code ----------
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
 COPY entrypoint.sh .
 
-# Set permissions
+# Install the project itself
+RUN uv sync --locked
+
+# ---------- Fix permissions ----------
 RUN chmod +x /app/entrypoint.sh \
     && chown -R appuser:appuser /app
 
-# Switch to non-root user
+# ---------- Switch to non-root ----------
 USER appuser
 
-# Expose port
-EXPOSE 8000
-
-# Run entrypoint
-ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+# ---------- Run the application ----------
+ENTRYPOINT ["/app/entrypoint.sh"]
