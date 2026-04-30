@@ -15,6 +15,7 @@ IMAGE_NAME ?= student-api
 NETWORK_NAME ?= student-network
 DB_CONTAINER ?= student-db
 API_CONTAINER ?= student-api
+TAG ?= v1.2.0
 
 # ----------------------
 # Install dependencies
@@ -80,7 +81,7 @@ endif
 
 # Build image
 docker-build:
-	docker build -t $(IMAGE_NAME) .
+	docker build -t $(IMAGE_NAME):$(TAG) .
 
 # Create network
 docker-network:
@@ -103,7 +104,7 @@ docker-run:
 		--network $(NETWORK_NAME) \
 		--env-file .env \
 		-p $(PORT):8000 \
-		$(IMAGE_NAME)
+		$(IMAGE_NAME):$(TAG)
 
 # Run migrations inside container
 docker-migrate:
