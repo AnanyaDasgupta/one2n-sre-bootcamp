@@ -12,6 +12,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "student_user", "-d", "students_db"]
+      interval: 5s  
+      retries: 5
 
   student-api:
     build: .
@@ -21,14 +25,11 @@ services:
       - .env
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app  # hot reload (optional for dev)
+    # volumes:
+    #   - .:/app  # hot reload (optional for dev)
+    #   - /app/venv  # persist virtual environment
     command: 
-      - sh /app/entrypoint.sh
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "student_user"]
-      interval: 5s
-      retries: 5
+      - /app/entrypoint.sh
 
 volumes:
   postgres_data:
