@@ -1,0 +1,118 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, feature/**]
+    paths:
+      - "app/**"
+      - "alembic/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - "entrypoint.sh"
+
+  pull_request:
+    paths:
+      - "app/**"
+      - "alembic/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - "entrypoint.sh"
+
+  workflow_dispatch:
+
+jobs:
+  # 1. Lint (fast, fail early)
+  lint:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Run lint stage
+        run: make ci-lint
+
+  # 2. Tests (parallel with lint)
+  test:
+    runs-on: self-hosted
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: student_user
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: students_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U student_user -d students_db"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Run test stage
+        env:
+          DATABASE_URL: postgresql://student_user:password123@localhost:5432/students_db
+        run: make ci-test
+
+  # 3. Build (depends on lint + test)
+  build:
+    runs-on: self-hosted
+    needs: [lint, test]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run build stage
+        run: make ci-build
+
+  # 4. Verify (smoke + security)
+  verify:
+    runs-on: self-hosted
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Smoke test
+      - name: Run smoke test
+        run: make ci-smoke
+
+      # Install uv for security tools
+      - name: Install uv
+        run: |
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      # Dependency scan
+      - name: Dependency security scan
+        run: uvx pip-audit
+
+      # Container scan
+      - name: Container security scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: student-api:v1.2.0

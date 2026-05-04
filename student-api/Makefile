@@ -141,6 +141,27 @@ restart:
 
 
 # ----------------------
+# CI Targets (stage-based)
+# ----------------------
+
+# Build stage (dependency + docker build)
+ci-build:
+	uv sync --locked
+	docker build -t $(IMAGE_NAME):$(TAG) .
+
+# Lint stage (static analysis)
+ci-lint:
+	uv run ruff check .
+	uv run ruff format --check .
+
+# Test stage (unit + integration + API)
+ci-test:
+	PYTHONPATH=. uv run pytest -v
+
+# Full CI pipeline (order enforced)
+ci: ci-lint ci-test ci-build
+
+# ----------------------
 # Postman tests
 # ----------------------
 postman-test:
