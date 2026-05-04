@@ -46,3 +46,7 @@ USER appuser
 
 # ---------- Run the application ----------
 ENTRYPOINT ["/app/entrypoint.sh"]
+
+
+
+
