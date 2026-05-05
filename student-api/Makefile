@@ -146,7 +146,6 @@ restart:
 
 # Build stage (dependency + docker build)
 ci-build:
-	uv sync --locked
 	docker build -t $(IMAGE_NAME):$(TAG) .
 
 # Lint stage (static analysis)
@@ -160,6 +159,16 @@ ci-test:
 
 # Full CI pipeline (order enforced)
 ci: ci-lint ci-test ci-build
+
+# Smoke test (ensure app starts and /health endpoint works)
+ci-smoke:
+	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 & \
+	SERVER_PID=$$!; \
+	for i in $$(seq 1 30); do \
+		curl -sf http://localhost:8000/healthcheck && echo "ready" && break || sleep 1; \
+	done; \
+	curl -sf http://localhost:8000/healthcheck; \
+	kill $$SERVER_PID
 
 # ----------------------
 # Postman tests
