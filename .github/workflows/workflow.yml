@@ -26,17 +26,30 @@ env:
   CI: true
   DATABASE_URL: postgresql://student_user:password123@localhost:5432/students_db
 
+# ---------- reusable uv install ----------
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  # 1. Lint (static analysis)
+
+  # ================= LINT =================
   lint:
     runs-on: self-hosted
-
     defaults:
       run:
         working-directory: student-api
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            student-api/.venv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install uv
         run: |
@@ -46,13 +59,13 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Run lint stage
+      - name: Run lint
         run: make ci-lint
 
-  # 2. Tests (unit + integration)
+
+  # ================= TEST =================
   test:
     runs-on: self-hosted
-
     defaults:
       run:
         working-directory: student-api
@@ -75,6 +88,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            student-api/.venv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
       - name: Install uv
         run: |
           curl -Ls https://astral.sh/uv/install.sh | sh
@@ -83,14 +104,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Run test stage
+      - name: Run tests
         run: make ci-test
 
-  # 3. Build (artifact validation)
+
+  # ================= BUILD =================
   build:
     runs-on: self-hosted
     needs: [lint, test]
-
     defaults:
       run:
         working-directory: student-api
@@ -101,11 +122,11 @@ jobs:
       - name: Build Docker image
         run: make ci-build
 
-  # 4. Verify (smoke + security)
+
+  # ================= VERIFY =================
   verify:
     runs-on: self-hosted
     needs: build
-
     defaults:
       run:
         working-directory: student-api
@@ -113,27 +134,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: Run smoke test (fast fail-safe)
         run: |
-          curl -Ls https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          set -e
+          make ci-smoke
 
-      # Install uv (needed for pip-audit)
-      - name: Install uv
-        run: |
-          curl -Ls https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      # Smoke test (runtime validation)
-      - name: Run smoke test
-        run: make ci-smoke
-
-
-      # Dependency security scan
-      - name: Dependency scan
+      - name: Dependency security scan
         run: uvx pip-audit
 
-      # Container security scan
       - name: Container scan
         if: ${{ !env.ACT }}
         uses: aquasecurity/trivy-action@v0.35.0
