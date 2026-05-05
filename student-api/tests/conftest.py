@@ -1,32 +1,54 @@
+import os
 import pytest
-from testcontainers.postgres import PostgresContainer
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import Base
+from app.core.database import Base, get_db
 from app.main import app
 from fastapi.testclient import TestClient
-from app.core.database import get_db
+
+
+IS_CI = os.getenv("CI") == "true"
 
 
 @pytest.fixture(scope="session")
-def postgres_container():
-    # Start a PostgreSQL container for testing
-    with PostgresContainer("postgres:15") as postgres:
-        yield postgres
+def engine():
+    """
+    Creates SQLAlchemy engine:
+    - CI: uses DATABASE_URL from environment (GitHub Actions / act)
+    - Local: spins up Postgres via testcontainers
+    """
 
+    postgres = None
 
-@pytest.fixture(scope="session")
-def engine(postgres_container):
-    # Create SQLAlchemy engine and initialize database schema
-    engine = create_engine(postgres_container.get_connection_url())
+    if IS_CI:
+        database_url = os.environ["DATABASE_URL"]
+    else:
+        from testcontainers.postgres import PostgresContainer
+
+        postgres = PostgresContainer("postgres:15")
+        postgres.start()
+        database_url = postgres.get_connection_url()
+
+    engine = create_engine(database_url)
+
+    # Create schema once per test session
     Base.metadata.create_all(bind=engine)
-    return engine
+
+    yield engine
+
+    engine.dispose()
+
+    if postgres:
+        postgres.stop()
 
 
 @pytest.fixture(scope="function")
 def db(engine):
-    # Create a database session for each test function
+    """
+    Creates a fresh DB session per test.
+    Wraps each test in a transaction rollback.
+    """
     connection = engine.connect()
     transaction = connection.begin()
 
@@ -45,7 +67,10 @@ def db(engine):
 
 @pytest.fixture
 def client(db):
-    # Create FastAPI test client with database dependency override
+    """
+    FastAPI test client with DB override.
+    """
+
     def override_get_db():
         yield db
 
