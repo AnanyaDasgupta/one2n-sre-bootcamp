@@ -1,1 +1,1 @@
-from app.models.student import Student
+from app.models.student import Student  # noqa: F401
