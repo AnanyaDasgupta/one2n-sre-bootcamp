@@ -4,36 +4,26 @@ on:
   push:
     branches: [feature/**]
     paths:
-      - "app/**"
-      - "alembic/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - "Dockerfile"
-      - "entrypoint.sh"
-
+      - 'student-api/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
-      - "app/**"
-      - "alembic/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - "Dockerfile"
-      - "entrypoint.sh"
-
+      - 'student-api/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 env:
   CI: true
   DATABASE_URL: postgresql://student_user:password123@localhost:5432/students_db
+  IMAGE_NAME: student-api
 
-# ---------- reusable uv install ----------
 defaults:
   run:
     shell: bash
 
 jobs:
 
-  # ================= LINT =================
+# ================= LINT =================
   lint:
     runs-on: self-hosted
     defaults:
@@ -47,22 +37,24 @@ jobs:
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
+          path: | 
+            ~/.cache/uv
+            student-api/.venv
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install uv
         run: |
-          curl -Ls https://astral.sh/uv/install.sh | sh
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Install deps
         run: uv sync --locked
 
-      - name: Run lint
+      - name: Lint
         run: make ci-lint
 
 
-  # ================= TEST =================
+# ================= TEST =================
   test:
     runs-on: self-hosted
     defaults:
@@ -86,27 +78,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Cache uv
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
+          path: | 
+            ~/.cache/uv
+            student-api/.venv
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install uv
         run: |
-          curl -Ls https://astral.sh/uv/install.sh | sh
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Install deps
         run: uv sync --locked
 
-      - name: Run tests
+      - name: Test
         run: make ci-test
 
 
-  # ================= BUILD =================
+# ================= BUILD =================
   build:
     runs-on: self-hosted
     needs: [lint, test]
@@ -117,11 +111,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: make ci-build
+      - name: Build image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
+
+      # Make image portable across jobs (important!)
+      - name: Save image
+        run: docker save $IMAGE_NAME:${{ github.sha }} -o image.tar
+
+      # - name: Upload artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: image
+      #     path: student-api/image.tar
 
 
-  # ================= VERIFY =================
+# ================= VERIFY =================
   verify:
     runs-on: self-hosted
     needs: build
@@ -132,31 +137,96 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download image
+        if: ${{ !env.ACT }}
+        uses: actions/download-artifact@v4
+        with:
+          name: image
+
+      - name: Load image
+        if: ${{ !env.ACT }}
+        run: docker load -i image.tar
+
       - name: Cache uv
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
+          path: | 
+            ~/.cache/uv
+            student-api/.venv
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install uv
         run: |
-          curl -Ls https://astral.sh/uv/install.sh | sh
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Run smoke test (fast fail-safe)
-        run: |
-          set -e
-          make ci-smoke
+      - name: Smoke test
+        run: make ci-smoke
 
-      - name: Dependency security scan
+      - name: Dependency scan
         run: uvx pip-audit
 
       - name: Container scan
         if: ${{ !env.ACT }}
         uses: aquasecurity/trivy-action@v0.35.0
         with:
-          image-ref: student-api:v1.2.0
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
+
+
+# ================= PUBLISH =================
+  publish:
+    runs-on: self-hosted
+    needs: verify
+    # if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    defaults:
+      run:
+        working-directory: student-api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Handle ACT vs GitHub artifact difference ----
+      - name: Download image (GitHub only)
+        if: ${{ !env.ACT }}
+        uses: actions/download-artifact@v4
+        with:
+          name: image
+
+      - name: Load image (GitHub only)
+        if: ${{ !env.ACT }}
+        run: docker load -i image.tar
+
+      # ---- For ACT: assume image already exists locally ----
+      - name: Verify image exists (ACT)
+        if: ${{ env.ACT }}
+        run: docker images | grep $IMAGE_NAME
+
+      # ---- Docker login ----
+      - name: Docker login
+        if: ${{ !env.ACT }}
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login \
+            -u "${{ secrets.DOCKER_USERNAME }}" \
+            --password-stdin
+
+      # ---- Tagging strategy (IMPORTANT) ----
+      - name: Tag image
+        run: |
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+            docker tag $IMAGE_NAME:${{ github.sha }} \
+              ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
+          else
+            echo "Skipping tag (no Docker username - likely ACT)"
+          fi
+
+      # ---- Push ----
+      - name: Push image
+        if: ${{ !env.ACT }}
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
