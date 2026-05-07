@@ -2,7 +2,7 @@
 .PHONY: install run dev test lint format \
         makemigration upgrade downgrade current heads history reset-db \
         docker-build docker-network docker-db docker-run docker-migrate docker-stop docker-clean \
-        postman-test
+        build db-up wait-db migrate api-up up down logs restart postman-test
 
 # Load environment variables if .env exists
 ifneq (,$(wildcard .env))
@@ -16,6 +16,9 @@ NETWORK_NAME ?= student-network
 DB_CONTAINER ?= student-db
 API_CONTAINER ?= student-api
 TAG ?= v1.2.0
+DOCKER_COMPOSE ?= docker compose
+DB_USER ?= student_user
+DB_NAME ?= students_db
 
 # ----------------------
 # Install dependencies
@@ -125,19 +128,39 @@ docker-clean:
 # ----------------------
 
 build:
-	docker-compose build
+	$(DOCKER_COMPOSE) build student-api
+
+db-up:
+	$(DOCKER_COMPOSE) up -d student-db
+
+wait-db:
+	@echo "Waiting for student-db to accept connections..."
+	@until $(DOCKER_COMPOSE) exec -T student-db pg_isready -U $(DB_USER) -d $(DB_NAME) >/dev/null 2>&1; do \
+		sleep 2; \
+	done
+	@echo "student-db is ready."
+
+migrate: build
+	$(DOCKER_COMPOSE) run --rm --no-deps student-api migrate
+
+api-up:
+	$(DOCKER_COMPOSE) up -d student-api
 
 up:
-	docker-compose up --build
+	$(MAKE) db-up
+	$(MAKE) wait-db
+	$(MAKE) migrate
+	$(MAKE) api-up
 
 down:
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 restart:
-	docker-compose down && docker-compose up --build
+	$(MAKE) down
+	$(MAKE) up
 
 
 # ----------------------
