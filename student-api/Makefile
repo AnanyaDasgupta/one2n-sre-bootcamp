@@ -15,7 +15,7 @@ IMAGE_NAME ?= student-api
 NETWORK_NAME ?= student-network
 DB_CONTAINER ?= student-db
 API_CONTAINER ?= student-api
-TAG ?= v1.2.0
+TAG ?= latest # local testing uses latest. CI will inject semver tagging
 
 # ----------------------
 # Install dependencies
@@ -160,15 +160,19 @@ ci-test:
 # Full CI pipeline (order enforced)
 ci: ci-lint ci-test ci-build
 
-# Smoke test (ensure app starts and /health endpoint works)
+# Test the docker container instead of local code to validate the image works in isolation. We run the container, wait for it to be healthy, then stop and remove it.
 ci-smoke:
-	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 & \
-	SERVER_PID=$$!; \
+	docker run -d \
+		--name smoke-test \
+		-p 8000:8000 \
+		--env-file .env \
+		$(IMAGE_NAME):$(TAG); \
 	for i in $$(seq 1 30); do \
 		curl -sf http://localhost:8000/healthcheck && echo "ready" && break || sleep 1; \
 	done; \
 	curl -sf http://localhost:8000/healthcheck; \
-	kill $$SERVER_PID
+	docker stop smoke-test; \
+	docker rm smoke-test;
 
 # ----------------------
 # Postman tests
