@@ -6,10 +6,12 @@ on:
     paths:
       - 'student-api/**'
       - '.github/workflows/**'
+
   pull_request:
     paths:
       - 'student-api/**'
       - '.github/workflows/**'
+
   workflow_dispatch:
 
 env:
@@ -23,9 +25,12 @@ defaults:
 
 jobs:
 
-# ================= LINT =================
+# =========================================================
+# LINT
+# =========================================================
   lint:
     runs-on: self-hosted
+
     defaults:
       run:
         working-directory: student-api
@@ -37,26 +42,44 @@ jobs:
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: | 
+          path: |
             ~/.cache/uv
             student-api/.venv
-          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ hashFiles('student-api/uv.lock') }}
 
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install deps
+      - name: Install dependencies
         run: uv sync --locked
 
-      - name: Lint
+      - name: Run lint checks
         run: make ci-lint
 
 
-# ================= TEST =================
+# =========================================================
+# HADOLINT
+# =========================================================
+  hadolint:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: student-api/Dockerfile
+
+
+# =========================================================
+# TEST
+# =========================================================
   test:
     runs-on: self-hosted
+
     defaults:
       run:
         working-directory: student-api
@@ -64,12 +87,15 @@ jobs:
     services:
       postgres:
         image: postgres:15
+
         env:
           POSTGRES_USER: student_user
           POSTGRES_PASSWORD: password123
           POSTGRES_DB: students_db
+
         ports:
           - 5432:5432
+
         options: >-
           --health-cmd="pg_isready -U student_user -d students_db"
           --health-interval=5s
@@ -83,27 +109,57 @@ jobs:
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: | 
+          path: |
             ~/.cache/uv
             student-api/.venv
-          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ hashFiles('student-api/uv.lock') }}
 
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install deps
+      - name: Install dependencies
         run: uv sync --locked
 
-      - name: Test
+      - name: Run tests
         run: make ci-test
 
 
-# ================= BUILD =================
+# =========================================================
+# VERSION
+# =========================================================
+  version:
+    runs-on: self-hosted
+
+    permissions:
+      contents: write
+
+    outputs:
+      version: ${{ steps.semver.outputs.new-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate semantic version
+        id: semver
+        uses: RichardInnocent/semantic-versioning-git@v0.0.2
+
+
+# =========================================================
+# BUILD
+# =========================================================
   build:
     runs-on: self-hosted
-    needs: [lint, test]
+
+    needs:
+      - lint
+      - hadolint
+      - test
+      - version
+
     defaults:
       run:
         working-directory: student-api
@@ -111,25 +167,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
+      - name: Build Docker image
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
+          make ci-build TAG=${{ github.sha }}
 
-      # Make image portable across jobs (important!)
-      - name: Save image
-        run: docker save $IMAGE_NAME:${{ github.sha }} -o image.tar
+      - name: Save Docker image
+        run: |
+          docker save $IMAGE_NAME:${{ github.sha }} -o image.tar
 
-      # - name: Upload artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: image
-      #     path: student-api/image.tar
+      - name: Upload image artifact
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: student-api/image.tar
 
 
-# ================= VERIFY =================
+# =========================================================
+# VERIFY
+# =========================================================
   verify:
     runs-on: self-hosted
-    needs: build
+
+    needs:
+      - build
+      - version
+
     defaults:
       run:
         working-directory: student-api
@@ -137,24 +200,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download image
+      - name: Download image artifact
         if: ${{ !env.ACT }}
         uses: actions/download-artifact@v4
         with:
           name: image
 
-      - name: Load image
+      - name: Load Docker image
         if: ${{ !env.ACT }}
-        run: docker load -i image.tar
+        run: |
+          docker load -i image.tar
 
       - name: Cache uv
         if: ${{ !env.ACT }}
         uses: actions/cache@v4
         with:
-          path: | 
+          path: |
             ~/.cache/uv
             student-api/.venv
-          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ hashFiles('student-api/uv.lock') }}
 
       - name: Install uv
         run: |
@@ -162,12 +226,14 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Smoke test
-        run: make ci-smoke
+        run: |
+          make ci-smoke TAG=${{ github.sha }}
 
-      - name: Dependency scan
-        run: uvx pip-audit
+      - name: Dependency vulnerability scan
+        run: |
+          uvx pip-audit
 
-      - name: Container scan
+      - name: Container vulnerability scan
         if: ${{ !env.ACT }}
         uses: aquasecurity/trivy-action@v0.35.0
         with:
@@ -177,11 +243,17 @@ jobs:
           severity: CRITICAL,HIGH
 
 
-# ================= PUBLISH =================
+# =========================================================
+# PUBLISH
+# =========================================================
   publish:
     runs-on: self-hosted
-    needs: verify
-    # if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    needs:
+      - verify
+      - version
+
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
 
     defaults:
       run:
@@ -189,24 +261,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # ---- Handle ACT vs GitHub artifact difference ----
-      - name: Download image (GitHub only)
+      - name: Download image artifact
         if: ${{ !env.ACT }}
         uses: actions/download-artifact@v4
         with:
           name: image
 
-      - name: Load image (GitHub only)
+      - name: Load Docker image
         if: ${{ !env.ACT }}
-        run: docker load -i image.tar
+        run: |
+          docker load -i image.tar
 
-      # ---- For ACT: assume image already exists locally ----
       - name: Verify image exists (ACT)
         if: ${{ env.ACT }}
-        run: docker images | grep $IMAGE_NAME
+        run: |
+          docker images | grep $IMAGE_NAME
 
-      # ---- Docker login ----
       - name: Docker login
         if: ${{ !env.ACT }}
         run: |
@@ -214,19 +287,17 @@ jobs:
             -u "${{ secrets.DOCKER_USERNAME }}" \
             --password-stdin
 
-      # ---- Tagging strategy (IMPORTANT) ----
-      - name: Tag image
+      - name: Tag Docker image
         run: |
-          if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
-            docker tag $IMAGE_NAME:${{ github.sha }} \
-              ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
-          else
-            echo "Skipping tag (no Docker username - likely ACT)"
-          fi
+          docker tag $IMAGE_NAME:${{ github.sha }} \
+            ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ needs.version.outputs.version }}
 
-      # ---- Push ----
-      - name: Push image
+          docker tag $IMAGE_NAME:${{ github.sha }} \
+            ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
+
+      - name: Push Docker image
         if: ${{ !env.ACT }}
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ needs.version.outputs.version }}
+
           docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
