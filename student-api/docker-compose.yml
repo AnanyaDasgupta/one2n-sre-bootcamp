@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   student-db:
     image: postgres:15
@@ -20,7 +18,8 @@ services:
   student-api:
     build: .
     depends_on:
-      - student-db
+      student-db:
+        condition: service_healthy
     env_file:
       - .env
     ports:
@@ -28,8 +27,7 @@ services:
     # volumes:
     #   - .:/app  # hot reload (optional for dev)
     #   - /app/venv  # persist virtual environment
-    command: 
-      - /app/entrypoint.sh
+    command: ["start"]
 
 volumes:
   postgres_data:
