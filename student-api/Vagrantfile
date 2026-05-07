@@ -1,0 +1,113 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "utm/bookworm"
+
+  config.vm.provider "utm" do |utm|
+    utm.memory = "2048"
+    utm.cpus = 2
+  end
+
+  config.vm.provision "shell", inline: <<~SHELL
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    log() {
+      echo
+      echo "==> $1"
+    }
+
+    update_package_index() {
+      log "Updating package index"
+      apt-get update
+    }
+
+    install_system_packages() {
+      log "Installing system dependencies"
+      apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        make \
+        python3 \
+        python-is-python3 \
+        python3-venv
+    }
+
+    install_docker() {
+      log "Installing Docker"
+      apt-get install -y --no-install-recommends docker.io
+      systemctl enable docker
+      systemctl start docker
+    }
+
+    install_docker_compose() {
+      log "Installing Docker Compose"
+
+      if apt-cache show docker-compose-plugin >/dev/null 2>&1; then
+        apt-get install -y --no-install-recommends docker-compose-plugin
+      else
+        apt-get install -y --no-install-recommends docker-compose
+      fi
+    }
+
+    install_uv() {
+      log "Installing uv"
+
+      install -d -m 0755 /usr/local/bin
+
+      if ! command -v uv >/dev/null 2>&1; then
+        curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
+      fi
+
+      chmod 0755 /usr/local/bin/uv /usr/local/bin/uvx
+    }
+
+    install_python_runtime() {
+      log "Installing Python 3.14 with uv"
+      runuser -u vagrant -- uv python install 3.14
+    }
+
+    configure_vagrant_user() {
+      log "Configuring vagrant user"
+      usermod -aG docker vagrant
+
+      if [ -d /home/vagrant ]; then
+        chown -R vagrant:vagrant /home/vagrant/.cache 2>/dev/null || true
+      fi
+    }
+
+    verify_installation() {
+      log "Verifying installed tools"
+      docker --version
+
+      if docker compose version >/dev/null 2>&1; then
+        docker compose version
+      elif command -v docker-compose >/dev/null 2>&1; then
+        docker-compose --version
+      fi
+
+      uv --version
+      runuser -u vagrant -- uv python list --only-installed
+      python --version
+      python3 --version
+      git --version
+      make --version | head -n 1
+    }
+
+    main() {
+      update_package_index
+      install_system_packages
+      install_docker
+      install_docker_compose
+      install_uv
+      install_python_runtime
+      configure_vagrant_user
+      verify_installation
+
+      log "Provisioning complete. Run 'vagrant reload' if docker group access is not active yet."
+    }
+
+    main "$@"
+  SHELL
+end
