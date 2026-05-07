@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  student-db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: student_user
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: students_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "student_user", "-d", "students_db"]
+      interval: 5s  
+      retries: 5
+
+  student-api:
+    build: .
+    depends_on:
+      - student-db
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    # volumes:
+    #   - .:/app  # hot reload (optional for dev)
+    #   - /app/venv  # persist virtual environment
+    command: 
+      - /app/entrypoint.sh
+
+volumes:
+  postgres_data:
