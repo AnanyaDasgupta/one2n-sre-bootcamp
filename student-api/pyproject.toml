@@ -13,12 +13,12 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "alembic>=1.18.4",
     "pydantic-settings>=2.14.0",
+    "ruff>=0.15.11",
 ]
 
 [dependency-groups]
 dev = [
     "psycopg2-binary>=2.9.12",
     "pytest>=9.0.3",
-    "ruff>=0.15.11",
     "testcontainers>=4.14.2",
 ]
