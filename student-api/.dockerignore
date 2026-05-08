@@ -1,5 +1,38 @@
+# .git
+# __pycache__
+# *.pyc
+# .env
+# .venv
+# .vagrant/
+
+# Git
 .git
-__pycache__
+.gitignore
+
+# Python
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment files
 .env
-.venv
+
+# Build artifacts
+build/
+dist/
+
+# Vagrant
+.vagrant/
+
+# OS files
+.DS_Store
