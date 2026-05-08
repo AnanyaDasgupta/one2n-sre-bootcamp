@@ -111,3 +111,6 @@ htmlcov/
 # Keep migrations, ignore compiled/cache
 alembic/__pycache__/
 test.db
+
+
+student-api/.vagrant/
