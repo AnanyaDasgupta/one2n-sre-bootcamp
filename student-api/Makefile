@@ -127,8 +127,11 @@ docker-clean:
 build:
 	docker-compose build
 
+build-no-cache:
+	docker-compose build --no-cache
+
 up:
-	docker-compose up --build
+	docker-compose up --build -d
 
 down:
 	docker-compose down
@@ -137,7 +140,13 @@ logs:
 	docker-compose logs -f
 
 restart:
-	docker-compose down && docker-compose up --build
+	docker-compose down && docker-compose up --build -d
+
+ps:
+	docker-compose ps
+
+cleanup:
+	docker-compose down -v
 
 
 # ----------------------
