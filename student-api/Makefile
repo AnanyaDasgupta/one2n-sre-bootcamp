@@ -149,6 +149,23 @@ cleanup:
 	docker-compose down -v
 
 
+# ---------
+# Vagrant 
+# ---------
+
+vm-up:
+	vagrant up
+
+vm-provision:
+	vagrant provision
+
+vm-restart:
+	vagrant reload
+
+vm-ssh:
+	vagrant ssh
+
+
 # ----------------------
 # CI Targets (stage-based)
 # ----------------------
