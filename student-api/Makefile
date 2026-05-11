@@ -201,6 +201,20 @@ ci-smoke:
 	docker rm smoke-test;
 
 # ----------------------
+# K8s setup (for local testing with minikube)
+# ----------------------
+k8s-setup:
+	./scripts/setup-minikube.sh
+k8s-status:
+	kubectl get nodes -o wide
+k8s-labels:
+	kubectl get nodes --show-labels
+k8s-stop:
+	minikube stop
+k8s-delete:
+	minikube delete
+
+# ----------------------
 # Postman tests
 # ----------------------
 postman-test:
