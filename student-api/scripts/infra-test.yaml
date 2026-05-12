@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: infra-test
+spec:
+  nodeSelector:
+    workload: infra
+  containers:
+    - name: nginx
+      image: nginx
